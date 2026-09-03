@@ -32,7 +32,33 @@ const getAllPosts = async (req, res) => {
     }
     return res.status(200).json({ posts });
   } catch (err) {
-    return res.status(200).json({ posts: [] }); // ✅ 200 OK, NOT 500!
+    return res.status(200).json({ posts: [] });
+  }
+};
+
+// ✅ Get SINGLE Post by ID — RETURNS 200 NOT 404!
+const getPostById = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    
+    // ✅ Post NOT found → return 200 with null, NOT 404!
+    if (!post) {
+      return res.status(200).json({ post: null, message: 'Post not found' });
+    }
+    
+    // ✅ Post is HIDDEN & user is NOT admin → return 200 with null
+    if (post.isHidden && !req.user?.isAdmin) {
+      return res.status(200).json({ post: null, message: 'Post unavailable' });
+    }
+    
+    // ✅ Filter hidden comments for regular users
+    if (!req.user?.isAdmin) {
+      post.comments = post.comments.filter(c => !c.isHidden);
+    }
+    
+    return res.status(200).json({ post });
+  } catch (err) {
+    return res.status(200).json({ post: null, error: err.message });
   }
 };
 
@@ -42,7 +68,7 @@ const getMyPosts = async (req, res) => {
     const posts = await Post.find({ userId: req.user._id }).sort({ createdAt: -1 });
     return res.status(200).json({ posts });
   } catch (err) {
-    return res.status(200).json({ posts: [] }); // ✅ 200 OK
+    return res.status(200).json({ posts: [] });
   }
 };
 
@@ -51,10 +77,8 @@ const toggleLike = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) {
-      // ✅ 200 OK, NOT 404 → NO VERCEL ERROR PAGE!
       return res.status(200).json({ error: "Post not found", post: null });
     }
-    // ✅ Also block likes on hidden posts
     if (post.isHidden && !req.user?.isAdmin) {
       return res.status(200).json({ error: "Post unavailable", post: null });
     }
@@ -67,7 +91,7 @@ const toggleLike = async (req, res) => {
     await post.save();
     return res.status(200).json({ message: hasLiked ? "Unliked" : "Liked", post });
   } catch (err) {
-    return res.status(200).json({ error: err.message, post: null }); // ✅ 200 OK
+    return res.status(200).json({ error: err.message, post: null });
   }
 };
 
@@ -76,13 +100,13 @@ const addComment = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) {
-      return res.status(200).json({ error: "Post not found" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Post not found" });
     }
     if (post.isHidden && !req.user?.isAdmin) {
       return res.status(200).json({ error: "Post unavailable" });
     }
     if (post.isLocked) {
-      return res.status(200).json({ error: "Comments are locked for this post" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Comments are locked for this post" });
     }
     post.comments.push({
       content: req.body.content,
@@ -93,7 +117,7 @@ const addComment = async (req, res) => {
     await post.save();
     return res.status(201).json({ message: "Comment added successfully", post });
   } catch (err) {
-    return res.status(200).json({ error: err.message }); // ✅ 200 OK
+    return res.status(200).json({ error: err.message });
   }
 };
 
@@ -102,16 +126,19 @@ const updatePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) {
-      return res.status(200).json({ error: "Post not found" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Post not found" });
     }
     if (post.userId.toString() !== req.user._id.toString()) {
-      return res.status(200).json({ error: "You can only update your own posts" }); // ✅ 200 OK
+      return res.status(200).json({ error: "You can only update your own posts" });
     }
     post.content = req.body.content || post.content;
+    if (req.body.imageUrl !== undefined) {
+      post.imageUrl = req.body.imageUrl;
+    }
     await post.save();
     return res.status(200).json({ message: "Post updated successfully", post });
   } catch (err) {
-    return res.status(200).json({ error: err.message }); // ✅ 200 OK
+    return res.status(200).json({ error: err.message });
   }
 };
 
@@ -120,15 +147,15 @@ const deletePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) {
-      return res.status(200).json({ error: "Post not found" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Post not found" });
     }
     if (post.userId.toString() !== req.user._id.toString()) {
-      return res.status(200).json({ error: "You can only delete your own posts" }); // ✅ 200 OK
+      return res.status(200).json({ error: "You can only delete your own posts" });
     }
     await Post.findByIdAndDelete(req.params.id);
     return res.status(200).json({ message: "Post deleted successfully" });
   } catch (err) {
-    return res.status(200).json({ error: err.message }); // ✅ 200 OK
+    return res.status(200).json({ error: err.message });
   }
 };
 
@@ -137,7 +164,7 @@ const toggleLockPost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) {
-      return res.status(200).json({ error: "Post not found" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Post not found" });
     }
     post.isLocked = !post.isLocked;
     await post.save();
@@ -146,7 +173,7 @@ const toggleLockPost = async (req, res) => {
       isLocked: post.isLocked
     });
   } catch (err) {
-    return res.status(200).json({ error: err.message }); // ✅ 200 OK
+    return res.status(200).json({ error: err.message });
   }
 };
 
@@ -155,7 +182,7 @@ const toggleHidePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) {
-      return res.status(200).json({ error: "Post not found" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Post not found" });
     }
     post.isHidden = !post.isHidden;
     await post.save();
@@ -164,7 +191,7 @@ const toggleHidePost = async (req, res) => {
       isHidden: post.isHidden
     });
   } catch (err) {
-    return res.status(200).json({ error: err.message }); // ✅ 200 OK
+    return res.status(200).json({ error: err.message });
   }
 };
 
@@ -174,10 +201,10 @@ const toggleCommentVisibility = async (req, res) => {
     const { postId, commentIndex } = req.params;
     const post = await Post.findById(postId);
     if (!post) {
-      return res.status(200).json({ error: "Post not found" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Post not found" });
     }
     if (!post.comments[commentIndex]) {
-      return res.status(200).json({ error: "Comment not found" }); // ✅ 200 OK
+      return res.status(200).json({ error: "Comment not found" });
     }
     post.comments[commentIndex].isHidden = !post.comments[commentIndex].isHidden;
     await post.save();
@@ -188,12 +215,20 @@ const toggleCommentVisibility = async (req, res) => {
       comment: post.comments[commentIndex]
     });
   } catch (err) {
-    return res.status(200).json({ error: err.message }); // ✅ 200 OK
+    return res.status(200).json({ error: err.message });
   }
 };
 
 module.exports = { 
-  createPost, getAllPosts, getMyPosts, toggleLike, addComment,
-  updatePost, deletePost,
-  toggleLockPost, toggleHidePost, toggleCommentVisibility
+  createPost, 
+  getAllPosts, 
+  getPostById,   // ✅ NEW: Added!
+  getMyPosts,
+  toggleLike, 
+  addComment,
+  updatePost, 
+  deletePost,
+  toggleLockPost, 
+  toggleHidePost, 
+  toggleCommentVisibility
 };
