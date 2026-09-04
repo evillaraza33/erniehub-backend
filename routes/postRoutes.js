@@ -33,5 +33,6 @@ router.delete('/delete/:id', authenticate, deletePost);
 router.patch('/lock/:id', authenticate, isAdmin, toggleLockPost);
 router.patch('/hide/:id', authenticate, isAdmin, toggleHidePost);
 router.patch('/comment-visibility/:postId/:commentIndex', authenticate, isAdmin, toggleCommentVisibility);
+router.patch('/toggle-comment-hidden/:postId/:commentIndex', authenticate, isAdmin, toggleCommentVisibility);
 
 module.exports = router;

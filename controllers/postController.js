@@ -200,22 +200,27 @@ const toggleCommentVisibility = async (req, res) => {
   try {
     const { postId, commentIndex } = req.params;
     const post = await Post.findById(postId);
+    
     if (!post) {
-      return res.status(200).json({ error: "Post not found" });
+      return res.status(404).json({ error: "Post not found" });
     }
+    
     if (!post.comments[commentIndex]) {
-      return res.status(200).json({ error: "Comment not found" });
+      return res.status(404).json({ error: "Comment not found" });
     }
+
+    // ✅ TOGGLE the isHidden value (FLIP IT!)
     post.comments[commentIndex].isHidden = !post.comments[commentIndex].isHidden;
-    await post.save();
-    return res.status(200).json({
-      message: post.comments[commentIndex].isHidden 
-        ? "Comment HIDDEN" 
-        : "Comment UNHIDDEN",
+    
+    await post.save(); // ✅ SAVE to database!
+
+    return res.status(200).json({ 
+      message: post.comments[commentIndex].isHidden ? "Comment hidden" : "Comment unhidden",
+      isHidden: post.comments[commentIndex].isHidden,
       comment: post.comments[commentIndex]
     });
   } catch (err) {
-    return res.status(200).json({ error: err.message });
+    return res.status(400).json({ error: err.message });
   }
 };
 
