@@ -143,7 +143,38 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+// Update the admin profile
+const updateProfile = async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    const user = await User.findById(req.user._id);
+    
+    if (username) user.username = username;
+    if (email) user.email = email;
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      user.password = await bcrypt.hash(password, 10);
+    }
+    
+    await user.save();
+    return res.status(200).json({ 
+      message: "Profile updated successfully", 
+      user: { _id: user._id, username: user.username, email: user.email }
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+};
+
+// Don't forget to EXPORT it at the BOTTOM of userController.js!
+module.exports = {
+  register,
+  login,
+  getDetails,
+  updateProfile  // ✅ MUST BE HERE!
+};
+
 module.exports = { 
   register, login, getDetails,
-  getAllUsers, toggleBlockUser  // ✅ Admin can still block/unblock
+  getAllUsers, toggleBlockUser, updateProfile  // ✅ Admin can still block/unblock
 };

@@ -1,7 +1,7 @@
 const express = require('express');
 const { 
   register, login, getDetails,
-  getAllUsers, toggleBlockUser  // ✅ Kept admin user management
+  getAllUsers, toggleBlockUser, updateProfile
 } = require('../controllers/userController');
 const authenticate = require('../middleware/authMiddleware');
 const isAdmin = require('../middleware/adminMiddleware');
@@ -17,5 +17,6 @@ router.get('/getDetails', authenticate, getDetails);
 // ========== ADMIN ONLY — User Management ==========
 router.get('/all', authenticate, isAdmin, getAllUsers);
 router.patch('/:userId/block', authenticate, isAdmin, toggleBlockUser);
+router.patch('/update', authenticate, updateProfile);
 
 module.exports = router;
